@@ -33,17 +33,9 @@ void AMovingPlatform::Tick(float DeltaTime)
 
 void AMovingPlatform::MovePlatform(float DeltaTime)
 {
-	FVector Location = GetActorLocation();
-	Location += Velocity * DeltaTime;
-
-	SetActorLocation(Location);
-
-	DistanceMoved = FVector::Dist(StartLocation, Location);
-	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, FString::Printf(TEXT("%f"), DistanceMoved));
-
-	if (DistanceMoved >= MoveDistance)
+	if (ShouldPlatformReturn())
 	{
-		float OverShoot = DistanceMoved - MoveDistance;
+		float OverShoot = GetDistanceMoved() - MoveDistance;
 		UE_LOG(LogTemp, Display, TEXT("\"%s\" OverShoot: %f"), *GetName(), OverShoot);
 
 		FVector Direction = Velocity.GetSafeNormal();
@@ -52,15 +44,29 @@ void AMovingPlatform::MovePlatform(float DeltaTime)
 
 		Velocity = -Velocity;
 	}
+	else
+	{
+		FVector Location = GetActorLocation();
+		Location += Velocity * DeltaTime;
+
+		SetActorLocation(Location);
+
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, FString::Printf(TEXT("%f"), GetDistanceMoved()));
+	}
 }
 
 void AMovingPlatform::RotatePlatform(float DeltaTime)
 {
-	FRotator Rotator = GetActorRotation();
-	Rotator.Yaw += RotateSpeed * DeltaTime;
+	AddActorLocalRotation(RotationVelocity * DeltaTime);
+}
 
-	SetActorRotation(Rotator);
+bool AMovingPlatform::ShouldPlatformReturn() const
+{
+	return GetDistanceMoved() >= MoveDistance;
+}
 
-	UE_LOG(LogTemp, Display, TEXT("%s is rotating..."), *GetName());
+float AMovingPlatform::GetDistanceMoved() const
+{
+	return FVector::Dist(StartLocation, GetActorLocation());
 }
 
